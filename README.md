@@ -1,5 +1,14 @@
 # showstopper
 
+## dependencies
+
+* numpy_root: converts tree into numpy array
+* numpy
+* pandas: sponging 
+* pyqtgraph: plotting
+* pyroot: plotting
+
+
 ## flow
 
 * get pulse data file from Kazu
