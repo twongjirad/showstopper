@@ -22,35 +22,35 @@ def make_adc_matrix():
     maxadc_matrix  = np.zeros( (9600,9600) )
     nfilled_matrix = np.zeros( (9600,9600) )
 
-    for run in xrange(28,46):
+    for run in xrange(28,60):
         npzfile = 'output/run%03d.npz'%(run)
         if not os.path.exists(npzfile):
             print "skip ",npzfile
             continue
+
+        print "extracting ",npzfile
         datanpz = np.load( npzfile )
         data = datanpz['outdf']
-        print "extracting ",npzfile
+        df = pd.DataFrame( data )
+        
+        # index channels
+        df['hist_index'] = np.vectorize( get_index )( df['crate'], df['slot'], df['femch'] )
 
-        pulsed_np = get_pulsed_channel_list( run )
-        pulsed_list = pulsed_np.values.tolist()
-        pulsed_indices = get_pulsed_index_array( pulsed_list )
-    
-        for i in xrange(0,data.shape[0]):
-            crate  = data[i,0]
-            slot   = data[i,1]
-            femch  = data[i,2]
-            maxadc = data[i,3]
-            pulsed = data[i,4]
+        # get pulsed list
+        pulsed = df[ df['pulsed']==1 ]
+        pulsed.drop( 'index', axis=1, inplace=True )
 
-            if pulsed==0:
+        #unpulsed = df[ df['pulsed']==0 ]
+        #unpulsed.drop( 'index', axis=1, inplace=True )
+
+        for r in data:
+            if r['pulsed']==0:
                 # not pulsed
                 # we fill over the pulsed channels
-                unpulsed_index =  get_index( crate, slot, femch )
-                for pulsed_index in pulsed_indices:
-                    maxadc_matrix[pulsed_index,unpulsed_index]  += maxadc
+                unpulsed_index =  get_index( r['crate'], r['slot'], r['femch'] )
+                for pulsed_index in pulsed['hist_index']:
+                    maxadc_matrix[pulsed_index,unpulsed_index]  += r['amp']
                     nfilled_matrix[pulsed_index,unpulsed_index] += 1.0
-            if i%500==0:
-                print "entry",i
     nfilled_matrix[ nfilled_matrix==0 ] = 1.0
     maxadc_matrix /= nfilled_matrix
     return maxadc_matrix
