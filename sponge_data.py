@@ -1,7 +1,7 @@
 import os,sys
 import numpy as np
 import ROOT
-from root_numpy import root2array, root2rec, tree2rec
+from root_numpy import root2array, root2rec, tree2rec, array2root
 import pandas as pd
 from badchtable import get_badchtable
 from pulsed_list import get_pulsed_channel_list
@@ -53,16 +53,18 @@ def sponge_run( run ):
     # get max of each column for each group
     maxch = chs.aggregate(np.max)
 
-    print maxch[ maxch['amp']>200.0 ]
-
     # if adc is above a threshold, then mark it as a pulsed channel
     maxch['pulsed'] = maxch['amp'].apply( lambda x: 1 if x>1000.0 else 0 )
 
     print "NPULSED: ",len( maxch[ maxch['pulsed']==1 ] )
     print "NPULSED and BADCH: ",len( maxch.query( '(pulsed==1) & (badch==1)' ) )
 
+    outdf = pd.DataFrame( maxch ).reset_index()
+
     print "Writing ",out_npz
-    np.savez( out_npz, outdf=maxch.values )
+    np.savez( out_npz, outdf=outdf.to_records() )
+
+    array2root( outdf.to_records(), 'output/run%03d.root'%(run),'maxamp' )
 
     
 if __name__=="__main__":
