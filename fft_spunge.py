@@ -78,7 +78,7 @@ def fft_spunge(run):
     chmap = getChannelMap()
     for subrun in subrunlist:
         outfile = "output/run%03d_subrun%03d_%03d" % (run,subrun[0],subrun[1])
-        if os.path.exists(outfile):
+        if os.path.exists(outfile+".npz"):
             print outfile," already exists. skipping"
             continue
         print datafilenames[subrun]
@@ -100,4 +100,4 @@ def fft_spunge(run):
 
 if __name__ == "__main__":
     
-    fft_spunge(83)
+    fft_spunge(95)
