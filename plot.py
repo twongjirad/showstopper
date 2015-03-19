@@ -30,9 +30,9 @@ good_indices = range(center_wire-32,center_wire+33)
 filename = "covamp_run083.npz"
 datafile = np.load(filename)
 data = datafile['mat']
-use_subregion  = True
+use_subregion  = False
 use_pyqtgraph = True
-use_pyroot = True
+use_pyroot = False
 
 app = QtGui.QApplication([])
 

@@ -7,6 +7,8 @@ from channelmap import getChannelMap
 rmax = 5100.0
 gmax = 3000.0
 bmax = 1100.0
+tstart = 0
+tend = 100
 
 def get_run_datafiles( run ):
     datadir = os.listdir('data')
@@ -32,27 +34,30 @@ def get_dataframes(datafile):
     return wfdf, pldf
 
 #def fft_rgba( wfarr ):
-def fft_rgba( wfrow ):
+def fft_rgba( wfrow, mean ):
     #print wfrow
     #wfarr = np.array( wfrow )
     wfarr = wfrow
-    wfarr[:] -= np.mean(wfarr)
-    xff = np.fft.fft( wfarr[:100] )
+    wfarr[:] -= mean
+    xff = np.fft.fft( wfarr[tstart:tend] )
     xffc = np.conjugate( xff )
     xx = np.sqrt(np.real(xff*xffc))
     
-    rval = np.max( xx[4:7] )/rmax
-    gval = np.max( xx[14:17] )/gmax
-    bval = np.max( xx[24:27] )/bmax
+    rval = np.max( xx[4:7] )
+    gval = np.max( xx[14:17] )
+    bval = np.max( xx[24:27] )
     amp = np.max(  wfarr[:] )
     return rval,gval,bval,1.0,amp
 
 def add_fft_rgba( wfdf ):
-    rgba = np.vectorize( fft_rgba )( wfdf['wf'] )
+    rgba = np.vectorize( fft_rgba )( wfdf['wf'], wfdf['ped_mean'] )
     wfdf['rval'] = rgba[0][:]
     wfdf['gval'] = rgba[1][:]
     wfdf['bval'] = rgba[2][:]
     wfdf['aval'] = rgba[3][:]
+    wfdf['rratio'] = rgba[0][:]/rmax
+    wfdf['gratio'] = rgba[1][:]/gmax
+    wfdf['bratio'] = rgba[2][:]/bmax
     wfdf['max_amp'] = rgba[4][:]
 
 def map_plane( crate, slot, femch ):
@@ -73,12 +78,25 @@ def map_channel( crate, slot, femch ):
         print "did not find: ",crate,slot,femch
         return None
 
-def fft_spunge(run):
+def fft_spunge(run,remake=False):
+    global tstart
+    global tend
     subrunlist, datafilenames = get_run_datafiles( run )
     chmap = getChannelMap()
     for subrun in subrunlist:
+        if run==95 and subrun==(27,36):
+            tstart = 1400
+            tend = 1500
+        elif run==95 and subrun==(217,226):
+            tstart = 1800
+            tend = 1900
+        else:
+            tstart = 0
+            tend = 100
+        print "RUN ",run," ",subrun,": ",tstart,tend
         outfile = "output/run%03d_subrun%03d_%03d" % (run,subrun[0],subrun[1])
-        if os.path.exists(outfile+".npz"):
+        #if os.path.exists(outfile+".npz") and (remake==False or subrun!=(217,226)):
+        if os.path.exists(outfile+".npz") and (remake==False):
             print outfile," already exists. skipping"
             continue
         print datafilenames[subrun]
@@ -100,4 +118,4 @@ def fft_spunge(run):
 
 if __name__ == "__main__":
     
-    fft_spunge(95)
+    fft_spunge(83,remake=True)
