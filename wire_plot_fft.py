@@ -60,10 +60,13 @@ def plot_run( mw, run, subrun1, subrun2, plotfft=True, subbg=True ):
     arr = df.to_records()
 
     maxamp = np.max( df['max_amp'].values )
+
     print "maxamp: ",maxamp
     chmap = getChannelMap()
     print pulsed_list[0]
     pulsed_row = df.query( '(crate==%d) & (slot==%d) & (femch==%d)'%(pulsed_list[0][0], pulsed_list[0][1],pulsed_list[0][2]) )
+    max_ampratio = pulsed_row['max_amp'].values[0]/pulsed_row['ped_rms'].values[0]
+
 
     rmax = pulsed_row['rval'].values[0]
     gmax = pulsed_row['gval'].values[0]
@@ -135,7 +138,8 @@ def plot_run( mw, run, subrun1, subrun2, plotfft=True, subbg=True ):
                 #    mw.vires.setWireColor( plane, wireid, ( 0.1 + 0.9*r['max_amp']/maxamp, 0.0, 0.0, 1.0 ) )
                 #else:
                 #    mw.vires.setWireColor( plane, wireid, ( 1.0, 1.0, 1.0, 0.1 ) )
-                red = 0.05 + 0.95*r['max_amp']/maxamp
+                #red = 0.05 + 0.95*r['max_amp']/maxamp
+                red = 0.01 + 0.99*(r['max_amp']/r['ped_rms'])/(max_ampratio)
                 if not pulsed:
                     mw.vires.setWireColor( plane, wireid, ( red, 0.05, 0.05, alpha ) ) 
                 else:
