@@ -33,21 +33,41 @@ def get_dataframes(datafile):
     pldf = pd.DataFrame( pl_arr )
     return wfdf, pldf
 
-#def fft_rgba( wfarr ):
+def runningMeanFast(x, N):
+    return np.convolve(x, np.ones((N,))/N)[(N-1):]
+
 def fft_rgba( wfrow, mean ):
+    """the work"""
     #print wfrow
     #wfarr = np.array( wfrow )
     wfarr = wfrow
     wfarr[:] -= mean
-    xff = np.fft.fft( wfarr[tstart:tend] )
+    tlen = tend-tstart
+    ave_wfm = np.zeros( tlen*3 )
+    nfills = 0
+    for t in xrange(tstart,len(wfarr),2000):
+        end = t+2*tlen
+        end = np.minimum(end,len(wfarr))
+        ave_wfm[:end-t] += wfarr[t:end]
+        nfills += 1
+    ave_wfm /= float(nfills)
+
+    # smooth
+    sm_wfm = runningMeanFast( ave_wfm, 5 )
+
+    # r,g,b power spectra data
+    xff = np.fft.fft( ave_wfm[:tlen] )
     xffc = np.conjugate( xff )
     xx = np.sqrt(np.real(xff*xffc))
-    
     rval = np.max( xx[4:7] )
     gval = np.max( xx[14:17] )
     bval = np.max( xx[24:27] )
-    amp = np.max(  wfarr[:] )
-    return rval,gval,bval,1.0,amp
+
+    amp = np.max(  np.fabs(ave_wfm[:tlen]) )
+    sm_rms = np.std(sm_wfm[tlen:2*tlen])
+    sm_amp = np.max( np.fabs(sm_wfm[:tlen]) )
+    
+    return rval,gval,bval,1.0,amp,sm_amp,sm_rms
 
 def add_fft_rgba( wfdf ):
     rgba = np.vectorize( fft_rgba )( wfdf['wf'], wfdf['ped_mean'] )
@@ -59,6 +79,8 @@ def add_fft_rgba( wfdf ):
     wfdf['gratio'] = rgba[1][:]/gmax
     wfdf['bratio'] = rgba[2][:]/bmax
     wfdf['max_amp'] = rgba[4][:]
+    wfdf['max_smooth'] = rgba[5][:]
+    wfdf['rms_smooth'] = rgba[6][:]
 
 def map_plane( crate, slot, femch ):
     chmap = getChannelMap()
@@ -95,7 +117,7 @@ def fft_spunge(run,remake=False):
             tend = 100
         print "RUN ",run," ",subrun,": ",tstart,tend
         outfile = "output/run%03d_subrun%03d_%03d" % (run,subrun[0],subrun[1])
-        #if os.path.exists(outfile+".npz") and (remake==False or subrun!=(217,226)):
+        #if os.path.exists(outfile+".npz") and (remake==False or subrun!=(27,36)):
         if os.path.exists(outfile+".npz") and (remake==False):
             print outfile," already exists. skipping"
             continue

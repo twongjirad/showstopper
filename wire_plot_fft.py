@@ -61,12 +61,19 @@ def plot_run( mw, run, subrun1, subrun2, plotfft=True, subbg=True ):
 
     maxamp = np.max( df['max_amp'].values )
 
-    print "maxamp: ",maxamp
     chmap = getChannelMap()
     print pulsed_list[0]
     pulsed_row = df.query( '(crate==%d) & (slot==%d) & (femch==%d)'%(pulsed_list[0][0], pulsed_list[0][1],pulsed_list[0][2]) )
     max_ampratio = pulsed_row['max_amp'].values[0]/pulsed_row['ped_rms'].values[0]
+    pulsed_maxamp = pulsed_row['max_amp'].values[0]
+    print "maxamp (overall): ",maxamp
+    print "pulsed maxamp: ",pulsed_maxamp
 
+    ampratio = np.zeros( len(df['max_amp'].values) )
+    ampratio[:] = df['max_smooth'].values[:]
+    ampratio[:] /= df['rms_smooth'].values[:]
+    max_smooth = pulsed_row['max_smooth'].values[0]
+    max_smooth_ratio = pulsed_row['max_smooth'].values[0]/pulsed_row['rms_smooth'].values[0]
 
     rmax = pulsed_row['rval'].values[0]
     gmax = pulsed_row['gval'].values[0]
@@ -91,7 +98,12 @@ def plot_run( mw, run, subrun1, subrun2, plotfft=True, subbg=True ):
         pulsed = False
         if [r['crate'],r['slot'],r['femch']] in pulsed_list:
             pulsed = True
-        alpha = 0.8
+        if (r['crate'],r['slot'],r['femch'])==(1,8,0):
+            #mw.vires.setWireColorByCSF( r['crate'],r['slot'],r['femch'], (0.01, 0.01, 0.01, 0.01) )
+            mw.vires.setWireColor( 'U',640, (0.01, 0.01, 0.01, 0.05) )
+            continue
+            
+        alpha = 0.95
 
         if len(row)>0:
             wireid = row['wireid'].values[0]
@@ -139,13 +151,19 @@ def plot_run( mw, run, subrun1, subrun2, plotfft=True, subbg=True ):
                 #else:
                 #    mw.vires.setWireColor( plane, wireid, ( 1.0, 1.0, 1.0, 0.1 ) )
                 #red = 0.05 + 0.95*r['max_amp']/maxamp
-                red = 0.01 + 0.99*(r['max_amp']/r['ped_rms'])/(max_ampratio)
+                #red = 0.01 + 0.99*(r['max_amp']/r['ped_rms'])/(max_ampratio)
+                #red = 0.01 + 0.99*(r['max_smooth']/r['rms_smooth'])/(max_smooth_ratio)
+                red = 0.01 + 0.99*r['max_amp']/pulsed_maxamp
                 if not pulsed:
-                    mw.vires.setWireColor( plane, wireid, ( red, 0.05, 0.05, alpha ) ) 
+                    if r['max_smooth']/r['rms_smooth']>5.0 and r['max_amp']>7.0:
+                        mw.vires.setWireColor( plane, wireid, ( red, 0.01, 0.01, alpha ) ) 
+                        print r['crate'],r['slot'],r['femch'],plane,wireid,red,r['max_amp'],pulsed
+                    else:
+                        mw.vires.setWireColor( plane, wireid, ( 0.01, 0.01, 0.01, alpha ) ) 
                 else:
                     mw.vires.setWireColor( plane, wireid, ( red, red, red, 1.0 ) ) 
-                if red>0.15:
-                    print r['crate'],r['slot'],r['femch'],plane,wireid,red,pulsed
+                #if red>0.15:
+                #    print r['crate'],r['slot'],r['femch'],plane,wireid,red,pulsed
 
                 # pulsed wire color
                 #if (r['crate'],r['slot'],r['femch'])==(6,9,0):
