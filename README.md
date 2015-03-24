@@ -8,8 +8,16 @@
 * pyqtgraph: plotting
 * pyroot: plotting
 
+## Contents
 
-## flow
+* analyze_crosstalk.py: select pickup channels, dump out statistics based on electronics groupings
+* fft_spunge.py: main data analyzer
+* wire_plot_fft.py: plots amplitude ratio data or FFT RGB score for each wire. Uses VireViewer
+* fft_run83_subrun00_00_expanded_search.ipynb: notebook allowing one to visualize waveforms and power spectra for each wire. Used to study selection cut.
+* update_data.sh: get data processed by Kazu
+
+
+## flow [deprecated]
 
 * get pulse data file from Kazu
 * sponge_data.py 
