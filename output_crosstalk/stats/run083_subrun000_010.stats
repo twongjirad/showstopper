@@ -1,0 +1,14 @@
+PICKUP QUERY:  (amp_ratio>5.0000 & wfamp/1087.1135>0.0070 & not (crate==2 & slot==6 & femch==0) )
+Number of pickup pulses:  1
+------------------------------------------------
+Category    |  N in category  | pickup in category  |  pct of category  |  pct. of all pulses
+Same ASIC  |  15  |  0  |  0.0  |  0.0
+Same MB and Connector  |  31  |  0  |  0.0  |  0.0
+Same MB  |  191  |  0  |  0.0  |  0.0
+Same FT  |  767  |  0  |  0.0  |  0.0
+Different FT  |  7552  |  1  |  0.0132415254237  |  100.0
+
+PICKUP CHANNELS
+   crate  slot  femch   max_amp  amp_ratio
+0      1    18     53  9.888184   5.457467
+

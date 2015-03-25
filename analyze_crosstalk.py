@@ -1,8 +1,10 @@
 import os,sys
+import StringIO
 import numpy as np
 import pandas as pd
 from root_numpy import root2array, root2rec, tree2rec, array2root
 from hoot import gethootdb
+from pulsed_list import get_pulsed_channel_list
 
 tstart = 0
 tend = 100
@@ -84,7 +86,7 @@ def process_run( run, subrun1, subrun2 ):
     outdf = hooty_and_the_volefish( outdf )
     return outdf
 
-def get_statistics( df, amprms_ratio_cut, max_amp_cut, pulsed_channel, ref_channel=None ):
+def get_statistics( df, amprms_ratio_cut, max_amp_cut, pulsed_channel, ref_channel=None,  outfile=None ):
     indexed = df.set_index(['crate','slot','femch'])
     if ref_channel is None:
         ref_channel = pulsed_channel
@@ -103,7 +105,8 @@ def get_statistics( df, amprms_ratio_cut, max_amp_cut, pulsed_channel, ref_chann
     print "SELECTION: ",query
     pickupdf = df.query( query )
     npickup = len(pickupdf)
-    
+    print "REFERENCE MAX ADC: ",maxadc
+    print "PULSED MAX ADC: ",pulsed_ch['max_amp']
     
     # different categories
     categories = [ 'sameasic', 'samemb_connector', 'samemb','sameFT','diffFT' ]
@@ -120,19 +123,52 @@ def get_statistics( df, amprms_ratio_cut, max_amp_cut, pulsed_channel, ref_chann
                        'sameFT':'Same FT',
                        'diffFT':'Different FT'}
 
-    print "BASICS:"
-    print "Number of pickup pulses: ",npickup
-    print "------------------------------------------------"
-    print "Category    |  N in category  | pickup in category  |  pct of category  |  pct. of all pulses"
-    notpulsed = " not (crate==%d & slot==%d & femch==%d)"%(pulsed_crate, pulsed_slot, pulsed_femch)
-    for cat in categories:
-        ncat = len(df.query( cat_query[cat]+" & "+notpulsed ))
-        ncat_pickup = len(df.query( cat_query[cat]+" & "+query ))
-        print cat_description[cat]," | ", ncat," | ",ncat_pickup," | ",float(ncat_pickup)/float(ncat)*100," | ",float(ncat_pickup)/float(npickup)
+    stats = StringIO.StringIO()
+    print >> stats,  "PICKUP QUERY: ",query
+    print >> stats,  "Number of pickup pulses: ",npickup
+    if npickup>0:
+        print >> stats,  "------------------------------------------------"
+        print >> stats,  "Category    |  N in category  | pickup in category  |  pct of category  |  pct. of all pulses"
+        notpulsed = " not (crate==%d & slot==%d & femch==%d)"%(pulsed_crate, pulsed_slot, pulsed_femch)
+        for cat in categories:
+            ncat = len(df.query( cat_query[cat]+" & "+notpulsed ))
+            ncat_pickup = len(df.query( cat_query[cat]+" & "+query ))
+            print >> stats,  cat_description[cat]," | ", ncat," | ",ncat_pickup," | ",float(ncat_pickup)/float(ncat)*100," | ",float(ncat_pickup)/float(npickup)*100
+        print stats.getvalue()
+        print >> stats,''
+        print >> stats,"PICKUP CHANNELS"
+        print >> stats, pickupdf.reset_index()[['crate','slot','femch','max_amp','amp_ratio']].to_string()
+    if outfile is not None:
+        f = open(outfile,'w')
+        f.write( stats.getvalue()+"\n")
     
 if __name__ == "__main__":
-    run = 83
-    subrun1 = 0
-    subrun2 = 10
-    outdf = process_run( run, subrun1, subrun2 )
-    get_statistics( outdf, 5.0, 0.0011, (2,6,0), ref_channel=(2,6,0) )
+    remake = False
+    pulseddf = get_pulsed_channel_list()
+    data_files = os.listdir("data2")
+    for data in data_files:
+        if ".root" not in data:
+            continue
+        print data
+        parts = data[:-len(".root")].split("_")
+        run = int(parts[1][len("run"):])
+        subrun1 = int(parts[2][len("subrun"):])
+        subrun2 = int(parts[3])
+        npfilename = 'output_crosstalk/numpy/run%03d_subrun%03d_%03d'%(run,subrun1,subrun2)
+        pulsed = pulseddf.query( 'run==%d & subrun1==%d & subrun2==%d'%(run,subrun1,subrun2) )
+        if len(pulsed)==0:
+            print "Not found: %d, %d, %d. Skipping."%(run,subrun1,subrun2)
+            continue
+        if os.path.exists( npfilename+'.npz') and remake==False:
+            print "already made: ",npfilename
+            npz = np.load( npfilename+'.npz' )
+            arr = npz['wfmtree']
+            outdf = pd.DataFrame( arr )
+        else:
+            outdf = process_run( run, subrun1, subrun2 )
+            np.savez(npfilename,wfmtree=outdf.to_records())
+            print (pulsed['pulsed_crate'].values[0],pulsed['pulsed_slot'].values[0],pulsed['pulsed_femch'].values[0])
+        get_statistics( outdf, 5.0, 0.007, (pulsed['pulsed_crate'].values[0],pulsed['pulsed_slot'].values[0],pulsed['pulsed_femch'].values[0]), 
+                        ref_channel=(pulsed['ref_crate'].values[0],pulsed['ref_slot'].values[0],pulsed['ref_femch'].values[0]), 
+                        outfile='output_crosstalk/stats/run%03d_subrun%03d_%03d.stats'%(run,subrun1,subrun2) )
+
