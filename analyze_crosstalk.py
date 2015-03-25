@@ -137,7 +137,7 @@ def get_statistics( df, amprms_ratio_cut, max_amp_cut, pulsed_channel, ref_chann
         print stats.getvalue()
         print >> stats,''
         print >> stats,"PICKUP CHANNELS"
-        print >> stats, pickupdf.reset_index()[['crate','slot','femch','max_amp','amp_ratio']].to_string()
+        print >> stats, pickupdf.reset_index()[['crate','slot','femch','FT','connect','mbid','asicid','max_amp','amp_ratio']].to_string()
     if outfile is not None:
         f = open(outfile,'w')
         f.write( stats.getvalue()+"\n")

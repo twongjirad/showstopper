@@ -9,6 +9,6 @@ Same FT  |  767  |  0  |  0.0  |  0.0
 Different FT  |  7552  |  1  |  0.0132415254237  |  100.0
 
 PICKUP CHANNELS
-   crate  slot  femch   max_amp  amp_ratio
-0      1    18     53  9.888184   5.457467
+   crate  slot  femch  FT connect  mbid  asicid   max_amp  amp_ratio
+0      1    18     53   1     A-6     0       3  9.888184   5.457467
 
